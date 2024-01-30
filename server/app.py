@@ -20,8 +20,14 @@ api = Api(app)
 class Plants(Resource):
 
     def get(self):
-        plants = [plant.to_dict() for plant in Plant.query.all()]
-        return make_response(jsonify(plants), 200)
+        plant_dict = [plant.to_dict() for plant in Plant.query.all()]
+
+        response = make_response(
+            jsonify(plant_dict), 200
+        )
+        response.headers['Content-Type'] = 'application/json'
+
+        return response
 
     def post(self):
         data = request.get_json()
@@ -46,7 +52,41 @@ class PlantByID(Resource):
     def get(self, id):
         plant = Plant.query.filter_by(id=id).first().to_dict()
         return make_response(jsonify(plant), 200)
+    
+    def patch(self, id):
+        record = Plant.query.filter_by(id=id).first()
 
+        if record:
+            for attr, value in request.json.items():
+                setattr(record, attr, value)
+            
+            db.session.commit()
+
+            response_dict = record.to_dict()
+
+            response = make_response(
+                jsonify(response_dict),
+                200
+            )
+            response.headers['Content-Type'] = 'application/json'
+
+            return response
+
+    def delete(self, id):
+        record = Plant.query.filter_by(id=id).first()
+
+        if record:
+            db.session.delete(record)
+            db.session.commit()
+
+            response_dict = {"message": "Record successfully deleted"}
+            response = make_response(
+                jsonify(response_dict),
+                204
+            )
+            response.headers['Content-Type'] = 'application/json'
+
+            return response
 
 api.add_resource(PlantByID, '/plants/<int:id>')
 
